@@ -18,5 +18,9 @@ if not exist packages\FSharp.Charting\lib\net40\FSharp.Charting.dll (
 	echo Downloading FSharp.Charting...
 	".nuget\NuGet.exe" "install" "FSharp.Charting" "-OutputDirectory" "packages" "-ExcludeVersion" "-Prerelease"
 )
+if not exist packages\NPOI\lib\net40\NPOI.dll ( 
+	echo Downloading NPOI...
+	".nuget\NuGet.exe" "install" "NPOI" "-OutputDirectory" "packages" "-ExcludeVersion" "-Prerelease"
+)
 
 start packages\FAKE\tools\Fsi.exe insight.fsx
