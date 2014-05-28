@@ -99,16 +99,17 @@ let make(fname, shName, varCol,startRow,endRow) =
 
 let l a1 a2 a3 a4 a5 a6 = Chart.Line( make(a1,a2,a3,a4,a5), a6 )
 let p a1 a2 a3 a4 a5 a6 = Chart.Point( make(a1,a2,a3,a4,a5), a6 )
+let s a1 a2 a3 a4 a5 a6 = Chart.SplineArea( make(a1,a2,a3,a4,a5), a6 )
+//Chart.Pie
+//Chart.Doughnut
 let ds xs = new ChartControl(Chart.Combine xs, Dock=DockStyle.Top)
 let dataset1 = ds [ l "olya.xls" "olya" "F" "2" "101" "Olya"
                     l "marina.xls" "marina" "F" "2" "101" "Marina"
-    ]
-let dataset2 = ds [ p "olya.xls" "olya" "D" "2" "101" "Olya"
-                    p "marina.xls" "marina" "D" "2" "101" "Marina"
+                    s "olya.xls" "olya" "D" "2" "101" "OlyaS"
+                    s "marina.xls" "marina" "D" "2" "101" "MarinaS"
     ]
 let Graphs : Control array = [|
     dataset1
-    dataset2
 |]
 
 let he() = (form.Height - 200) / Graphs.Length
