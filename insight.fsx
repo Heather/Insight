@@ -60,16 +60,16 @@ menuStrip.Items.Add fileMenu
 menuStrip.Items.Add aboutMenu
 form.ContextMenuStrip <- menuStrip
 
-let make(fname,varCol,valCol,startRow,endRow) =
+let make(fname) = //,varCol,valCol,startRow,endRow
         let cXL name =  
             if name <> "" then
                (name.ToLower().ToCharArray()
                 |> Seq.map (fun char -> Convert.ToInt32 char - 96)
                 |> Seq.sumBy(fun x -> x + 25)) - 26
             else 0
-        if [|fname;varCol;valCol;startRow;endRow|] 
+        if [|fname|] // ;varCol;valCol;startRow;endRow
             |> Seq.forall(fun x -> (x <> "" && x <> null)) then 
-            using(new FileStream(fname, FileMode.Open, FileAccess.Read))<| fun fs               ->
+            using(new FileStream(fname, FileMode.Open, FileAccess.Read))<| fun fs ->
                 let templateWorkbook = new HSSFWorkbook(fs, true)
                 let sheet = templateWorkbook.GetSheet("Sheet1")
                 using(new MemoryStream()) <| fun ms ->  
@@ -81,6 +81,8 @@ let make(fname,varCol,valCol,startRow,endRow) =
                             MessageBox.Show( "X.xls created, check the result" ) |> ignore
                         with _ -> MessageBox.Show( "Can't write to file" ) |> ignore
 
+make("olya.xls")
+                        
 let data1 = [for x in 0.0 .. 0.1 .. 6.0 -> sin x + cos (2.0 * x)]
 let data2 = [for x in 0.0 .. 0.1 .. 6.0 -> cos x + sin (2.0 * x)]
 
