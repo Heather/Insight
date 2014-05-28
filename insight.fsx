@@ -60,31 +60,48 @@ menuStrip.Items.Add fileMenu
 menuStrip.Items.Add aboutMenu
 form.ContextMenuStrip <- menuStrip
 
-let make(fname) = //,varCol,valCol,startRow,endRow
+let make(fname, shName, varCol,startRow,endRow) =
         let cXL name =  
             if name <> "" then
                (name.ToLower().ToCharArray()
                 |> Seq.map (fun char -> Convert.ToInt32 char - 96)
                 |> Seq.sumBy(fun x -> x + 25)) - 26
             else 0
-        if [|fname|] // ;varCol;valCol;startRow;endRow
+        if [|fname;varCol;startRow;endRow|]
             |> Seq.forall(fun x -> (x <> "" && x <> null)) then 
             using(new FileStream(fname, FileMode.Open, FileAccess.Read))<| fun fs ->
                 let templateWorkbook = new HSSFWorkbook(fs, true)
-                let sheet = templateWorkbook.GetSheet("Sheet1")
-                using(new MemoryStream()) <| fun ms ->  
-                    templateWorkbook.Write(ms)         
-                    let msA = ms.ToArray()
-                    using(new FileStream((@"X.xls"), FileMode.OpenOrCreate , FileAccess.Write))
-                    <| fun newF ->
-                        try newF.Write(msA,0,msA.Length)
-                            MessageBox.Show( "X.xls created, check the result" ) |> ignore
-                        with _ -> MessageBox.Show( "Can't write to file" ) |> ignore
+                let sheet = templateWorkbook.GetSheet(shName)
+                let cvar  = cXL varCol
+                let doMathAndSave sr er =
+                    [ for i in sr..er -> try Double.Parse(sheet.GetRow(i-1).GetCell(cvar).ToString())
+                                         with _ -> 0.0 ]
+                let sr = try Int32.Parse startRow 
+                         with _ -> 0
+                let er = match endRow with
+                            | "0" -> let rec counter cn =
+                                        try ignore <| sheet.GetRow(cn).GetCell(cvar)
+                                            counter (cn+1)
+                                        with _ -> (cn-1) 
+                                     counter 0
+                            | _ -> try Int32.Parse endRow
+                                   with _ -> 0 
+                doMathAndSave sr er
+        else [] (*
+            using(new MemoryStream()) <| fun ms ->  
+                templateWorkbook.Write(ms)         
+                let msA = ms.ToArray()
+                using(new FileStream((@"X.xls"), FileMode.OpenOrCreate , FileAccess.Write))
+                <| fun newF ->
+                    try newF.Write(msA,0,msA.Length)
+                        MessageBox.Show( "X.xls created, check the result" ) |> ignore
+                    with _ -> MessageBox.Show( "Can't write to file" ) |> ignore
+                            *)
 
-make("olya.xls")
+
                         
-let data1 = [for x in 0.0 .. 0.1 .. 6.0 -> sin x + cos (2.0 * x)]
-let data2 = [for x in 0.0 .. 0.1 .. 6.0 -> cos x + sin (2.0 * x)]
+let data1 = make("olya.xls", "olya", "F", "2", "101")
+let data2 = make("marina.xls", "marina", "F", "2", "101")
 
 let myChart = 
     Chart.Combine(
