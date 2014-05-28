@@ -97,13 +97,14 @@ let make(fname, shName, varCol,startRow,endRow) =
                 getData sr er
         else []
 
-let d a1 a2 a3 a4 a5 a6 = Chart.Line( make(a1,a2,a3,a4,a5), a6 )
+let l a1 a2 a3 a4 a5 a6 = Chart.Line( make(a1,a2,a3,a4,a5), a6 )
+let p a1 a2 a3 a4 a5 a6 = Chart.Point( make(a1,a2,a3,a4,a5), a6 )
 let ds xs = new ChartControl(Chart.Combine xs, Dock=DockStyle.Top)
-let dataset1 = ds [ d "olya.xls" "olya" "F" "2" "101" "Olya"
-                    d "marina.xls" "marina" "F" "2" "101" "Marina"
+let dataset1 = ds [ l "olya.xls" "olya" "F" "2" "101" "Olya"
+                    l "marina.xls" "marina" "F" "2" "101" "Marina"
     ]
-let dataset2 = ds [ d "olya.xls" "olya" "D" "2" "101" "Olya"
-                    d "marina.xls" "marina" "D" "2" "101" "Marina"
+let dataset2 = ds [ p "olya.xls" "olya" "D" "2" "101" "Olya"
+                    p "marina.xls" "marina" "D" "2" "101" "Marina"
     ]
 let Graphs : Control array = [|
     dataset1
@@ -113,10 +114,8 @@ let Graphs : Control array = [|
 let he() = (form.Height - 200) / Graphs.Length
 Graphs |> Array.iteri(fun i g ->
     let cc = g :?> ChartControl
-    //cc.Padding <- new Padding(i * he())
     cc.Height <- he()
     cc.Resize.Add(fun _ -> 
-        //cc.Padding <- new Padding(i * he())
         cc.Height <- he()
     )
 )
