@@ -99,19 +99,28 @@ let make(fname, shName, varCol,startRow,endRow) =
                             *)
 
 let d a1 a2 a3 a4 a5 a6 = Chart.Line( make(a1,a2,a3,a4,a5), a6 )
-let dataset1 = Chart.Combine [
-                d "olya.xls" "olya" "F" "2" "101" "Olya"
-                d "marina.xls" "marina" "F" "2" "101" "Marina"
+let ds xs = new ChartControl(Chart.Combine xs, Dock=DockStyle.Top)
+let dataset1 = ds [ d "olya.xls" "olya" "F" "2" "101" "Olya"
+                    d "marina.xls" "marina" "F" "2" "101" "Marina"
     ]
-let dataset2 = Chart.Combine [
-                d "olya.xls" "olya" "D" "2" "101" "Olya"
-                d "marina.xls" "marina" "D" "2" "101" "Marina"
+let dataset2 = ds [ d "olya.xls" "olya" "D" "2" "101" "Olya"
+                    d "marina.xls" "marina" "D" "2" "101" "Marina"
     ]
+let Graphs : Control array = [|
+    dataset1
+    dataset2
+|]
 
-let myChartControl1 = new ChartControl(dataset1, Dock=DockStyle.Top);
-myChartControl1.Height <- 500
-let myChartControl2 = new ChartControl(dataset2, Dock=DockStyle.Bottom);
-myChartControl2.Height <- 500
+let he() = (form.Height - 200) / Graphs.Length
+Graphs |> Array.iteri(fun i g ->
+    let cc = g :?> ChartControl
+    //cc.Padding <- new Padding(i * he())
+    cc.Height <- he()
+    cc.Resize.Add(fun _ -> 
+        //cc.Padding <- new Padding(i * he())
+        cc.Height <- he()
+    )
+)
 
 aboutMenu.Click.Add (fun _ -> 
     MessageBox.Show("Insight v.0.0.1") |> ignore
@@ -121,5 +130,5 @@ exitM.Click.Add (fun _ -> ignore <| form.Close())
 b1.Click.Add    (fun _ -> ignore <| form.Close())
 b2.Click.Add    (fun _ -> ())
 
-form.Controls.AddRange [|myChartControl1; myChartControl2; b1; b2|]
+form.Controls.AddRange <| Array.concat [Graphs; [|b1; b2|]]
 Application.Run(form)
