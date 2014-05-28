@@ -85,18 +85,17 @@ let make(fname, shName, varCol,startRow,endRow) =
                                         with _ -> (cn-1) 
                                      counter 0
                             | _ -> try Int32.Parse endRow
-                                   with _ -> 0 
+                                   with _ -> 0
+                let save() = using(new MemoryStream()) <| fun ms ->  
+                    templateWorkbook.Write(ms)         
+                    let msA = ms.ToArray()
+                    using(new FileStream((@"X.xls"), FileMode.OpenOrCreate , FileAccess.Write))
+                    <| fun newF ->
+                        try newF.Write(msA,0,msA.Length)
+                            MessageBox.Show( "X.xls created, check the result" ) |> ignore
+                        with _ -> MessageBox.Show( "Can't write to file" )       |> ignore
                 getData sr er
-        else [] (* // IT'S HOW I WILL SAVE FINAL RESULTS
-            using(new MemoryStream()) <| fun ms ->  
-                templateWorkbook.Write(ms)         
-                let msA = ms.ToArray()
-                using(new FileStream((@"X.xls"), FileMode.OpenOrCreate , FileAccess.Write))
-                <| fun newF ->
-                    try newF.Write(msA,0,msA.Length)
-                        MessageBox.Show( "X.xls created, check the result" ) |> ignore
-                    with _ -> MessageBox.Show( "Can't write to file" ) |> ignore
-                            *)
+        else []
 
 let d a1 a2 a3 a4 a5 a6 = Chart.Line( make(a1,a2,a3,a4,a5), a6 )
 let ds xs = new ChartControl(Chart.Combine xs, Dock=DockStyle.Top)
