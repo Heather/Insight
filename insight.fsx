@@ -67,13 +67,13 @@ let make(fname, shName, varCol,startRow,endRow) =
                 |> Seq.map (fun char -> Convert.ToInt32 char - 96)
                 |> Seq.sumBy(fun x -> x + 25)) - 26
             else 0
-        if [|fname;varCol;startRow;endRow|]
+        if [|fname;shName;varCol;startRow;endRow|]
             |> Seq.forall(fun x -> (x <> "" && x <> null)) then 
-            using(new FileStream(fname, FileMode.Open, FileAccess.Read))<| fun fs ->
+            using(new FileStream(fname, FileMode.Open, FileAccess.Read)) <| fun fs ->
                 let templateWorkbook = new HSSFWorkbook(fs, true)
                 let sheet = templateWorkbook.GetSheet(shName)
                 let cvar  = cXL varCol
-                let doMathAndSave sr er =
+                let getData sr er =
                     [ for i in sr..er -> try Double.Parse(sheet.GetRow(i-1).GetCell(cvar).ToString())
                                          with _ -> 0.0 ]
                 let sr = try Int32.Parse startRow 
@@ -86,8 +86,8 @@ let make(fname, shName, varCol,startRow,endRow) =
                                      counter 0
                             | _ -> try Int32.Parse endRow
                                    with _ -> 0 
-                doMathAndSave sr er
-        else [] (*
+                getData sr er
+        else [] (* // IT'S HOW I WILL SAVE FINAL RESULTS
             using(new MemoryStream()) <| fun ms ->  
                 templateWorkbook.Write(ms)         
                 let msA = ms.ToArray()
@@ -98,18 +98,20 @@ let make(fname, shName, varCol,startRow,endRow) =
                     with _ -> MessageBox.Show( "Can't write to file" ) |> ignore
                             *)
 
+let d a1 a2 a3 a4 a5 a6 = Chart.Line( make(a1,a2,a3,a4,a5), a6 )
+let dataset1 = Chart.Combine [
+                d "olya.xls" "olya" "F" "2" "101" "Olya"
+                d "marina.xls" "marina" "F" "2" "101" "Marina"
+    ]
+let dataset2 = Chart.Combine [
+                d "olya.xls" "olya" "D" "2" "101" "Olya"
+                d "marina.xls" "marina" "D" "2" "101" "Marina"
+    ]
 
-                        
-let data1 = make("olya.xls", "olya", "F", "2", "101")
-let data2 = make("marina.xls", "marina", "F", "2", "101")
-
-let myChart = 
-    Chart.Combine(
-        [   Chart.Line(data1,Name="data1-1")
-            Chart.Line(data2,Name="data2-2") ])
-
-let myChartControl = new ChartControl(myChart, Dock=DockStyle.Top);
-myChartControl.Height <- 500
+let myChartControl1 = new ChartControl(dataset1, Dock=DockStyle.Top);
+myChartControl1.Height <- 500
+let myChartControl2 = new ChartControl(dataset2, Dock=DockStyle.Bottom);
+myChartControl2.Height <- 500
 
 aboutMenu.Click.Add (fun _ -> 
     MessageBox.Show("Insight v.0.0.1") |> ignore
@@ -119,5 +121,5 @@ exitM.Click.Add (fun _ -> ignore <| form.Close())
 b1.Click.Add    (fun _ -> ignore <| form.Close())
 b2.Click.Add    (fun _ -> ())
 
-form.Controls.AddRange [|myChartControl; b1; b2|]
+form.Controls.AddRange [|myChartControl1; myChartControl2; b1; b2|]
 Application.Run(form)
