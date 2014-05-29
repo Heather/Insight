@@ -48,18 +48,18 @@ menuStrip.Items.Add fileMenu
 menuStrip.Items.Add aboutMenu
 form.ContextMenuStrip <- menuStrip
 
-let make fname shName varCol startRow endRow =
+let make fname varCol startRow endRow =
         let cXL name =  
             if name <> "" then
                (name.ToLower().ToCharArray()
                 |> Seq.map   /> fun char -> Convert.ToInt32 char - 96
                 |> Seq.sumBy (fun x -> x + 25)) - 26
             else 0
-        if [|fname;shName;varCol;startRow;endRow|]
+        if [|fname;varCol;startRow;endRow|]
             |> Seq.forall(fun x -> (x <> "" && x <> null)) then 
             using(new FileStream(fname, FileMode.Open, FileAccess.Read)) <| fun fs ->
                 let templateWorkbook = new HSSFWorkbook(fs, true)
-                let sheet = templateWorkbook.GetSheet(shName)
+                let sheet = templateWorkbook.GetSheetAt(0) //.GetSheet(shName)
                 let cvar  = cXL varCol
                 let getData sr er =
                     [ for i in sr..er -> try Double.Parse(sheet.GetRow(i-1).GetCell(cvar).ToString())
@@ -74,6 +74,7 @@ let make fname shName varCol startRow endRow =
                                      counter 0
                             | _ -> try Int32.Parse endRow
                                    with _ -> 0
+                                   (*
                 let save() = using(new MemoryStream()) <| fun ms ->  
                     templateWorkbook.Write(ms)         
                     let msA = ms.ToArray()
@@ -82,12 +83,15 @@ let make fname shName varCol startRow endRow =
                         try newF.Write(msA,0,msA.Length)
                             MessageBox.Show( "X.xls created, check the result" ) |> ignore
                         with _ -> MessageBox.Show( "Can't write to file" )       |> ignore
+                        *)
                 getData sr er
         else []
 
-let l a1 a2 a3 a4 a5 a6 = Chart.Line        (make a1 a2 a3 a4 a5, a6)
-let p a1 a2 a3 a4 a5 a6 = Chart.Point       (make a1 a2 a3 a4 a5, a6)
-let s a1 a2 a3 a4 a5 a6 = Chart.SplineArea  (make a1 a2 a3 a4 a5, a6)
+(*
+let l a1 a3 a4 a5 a6 = Chart.Line        (make a1 a3 a4 a5, a6)
+let p a1 a3 a4 a5 a6 = Chart.Point       (make a1 a3 a4 a5, a6)
+let s a1 a3 a4 a5 a6 = Chart.SplineArea  (make a1 a3 a4 a5, a6)
+*)
 
 let groupConsecutive sq = 
     (Array.ofSeq sq, [])
@@ -109,16 +113,33 @@ let dh (data : seq<list<float>>) a6 =
                                                                   |> Seq.sum ))
                       |> Seq.map        /> fun (n, c)  -> (n.ToString(), c)
     Chart.Doughnut(result, a6)
+    
+
+let xls = (new DirectoryInfo(".")).GetFiles()
+          |> Seq.filter /> fun f -> f.Name.EndsWith(".xls")
+          |> Seq.map    /> fun f -> f.Name
+let xlsData col start fin = xls |> Seq.map /> fun n -> make n col start fin
+
+let Fdata = xlsData "F" "2" "101"
+            |> Seq.mapi /> fun i d -> Chart.Line (d, "dataF" + i.ToString())
+            |> Seq.toList
+let Ddata = xlsData "D" "2" "101"
+            |> Seq.mapi /> fun i d -> Chart.SplineArea( d, "dataD" + i.ToString())
+            |> Seq.toList
 
 let ds xs = new ChartControl(Chart.Combine xs, Dock=DockStyle.Top)
-let dataset1 = ds [ l "olya.xls" "olya" "F" "2" "101" "Olya"
-                    l "marina.xls" "marina" "F" "2" "101" "Marina"
-                    s "olya.xls" "olya" "D" "2" "101" "OlyaS"
-                    s "marina.xls" "marina" "D" "2" "101" "MarinaS"
-    ]
-let dataset2 = ds [ dh [ make "olya.xls" "olya" "F" "2" "101"
-                         make "marina.xls" "marina" "F" "2" "101"
+let dataset1 = ds <| Fdata @ Ddata
+(*[ l "olya.xls" "F" "2" "101" "Olya"
+                    l "marina.xls" "F" "2" "101" "Marina"
+                    s "olya.xls" "D" "2" "101" "OlyaS"
+                    s "marina.xls" "D" "2" "101" "MarinaS"
+    ]*)
+let dataset2 = ds [ dh <| xlsData "F" "2" "101"
+                       <| "DH"
+(*[ make "olya.xls" "F" "2" "101"
+                         make "marina.xls" "F" "2" "101"
                        ] "DH"
+   *)
     ]
 let Graphs : Control array = [|
     dataset1
