@@ -16,6 +16,9 @@ open MetroFramework.Controls
 
 open NPOI.HSSF.UserModel
 
+(* power pipe *)
+let inline (/>) f a = f a
+
 let form = new MetroForm()
 form.Width  <- 800
 form.Height <- 750
@@ -45,12 +48,12 @@ menuStrip.Items.Add fileMenu
 menuStrip.Items.Add aboutMenu
 form.ContextMenuStrip <- menuStrip
 
-let make(fname, shName, varCol,startRow,endRow) =
+let make fname shName varCol startRow endRow =
         let cXL name =  
             if name <> "" then
                (name.ToLower().ToCharArray()
-                |> Seq.map (fun char -> Convert.ToInt32 char - 96)
-                |> Seq.sumBy(fun x -> x + 25)) - 26
+                |> Seq.map   /> fun char -> Convert.ToInt32 char - 96
+                |> Seq.sumBy (fun x -> x + 25)) - 26
             else 0
         if [|fname;shName;varCol;startRow;endRow|]
             |> Seq.forall(fun x -> (x <> "" && x <> null)) then 
@@ -82,37 +85,60 @@ let make(fname, shName, varCol,startRow,endRow) =
                 getData sr er
         else []
 
-let l a1 a2 a3 a4 a5 a6 = Chart.Line( make(a1,a2,a3,a4,a5), a6 )
-let p a1 a2 a3 a4 a5 a6 = Chart.Point( make(a1,a2,a3,a4,a5), a6 )
-let s a1 a2 a3 a4 a5 a6 = Chart.SplineArea( make(a1,a2,a3,a4,a5), a6 )
-//Chart.Pie
-//Chart.Doughnut
+let l a1 a2 a3 a4 a5 a6 = Chart.Line        (make a1 a2 a3 a4 a5, a6)
+let p a1 a2 a3 a4 a5 a6 = Chart.Point       (make a1 a2 a3 a4 a5, a6)
+let s a1 a2 a3 a4 a5 a6 = Chart.SplineArea  (make a1 a2 a3 a4 a5, a6)
+
+let groupConsecutive sq = 
+    (Array.ofSeq sq, [])
+    ||> Array.foldBack /> fun x -> function
+        | [] -> [[x]]
+        | xs :: xss -> if x = List.head xs then (x :: xs) :: xss
+                                           else [x] :: xs :: xss
+
+let sameData d = groupConsecutive d
+                 |> Seq.groupBy  /> fun s -> Seq.length s
+                 |> Seq.filter   /> fun (n, _) -> n > 1
+                 |> Seq.map      /> fun (n, g) -> (n, (Seq.length g))
+
+let dh (data : seq<list<float>>) a6 = 
+    let result = data |> Seq.map        /> fun l -> sameData l
+                      |> Seq.concat
+                      |> Seq.groupBy    /> fun (n, _)  ->  n
+                      |> Seq.map        /> fun (nn, s) -> (nn, (s |> Seq.map(fun (_, c) -> c)
+                                                                  |> Seq.sum ))
+                      |> Seq.map        /> fun (n, c)  -> (n.ToString(), c)
+    Chart.Doughnut(result, a6)
+
 let ds xs = new ChartControl(Chart.Combine xs, Dock=DockStyle.Top)
 let dataset1 = ds [ l "olya.xls" "olya" "F" "2" "101" "Olya"
                     l "marina.xls" "marina" "F" "2" "101" "Marina"
                     s "olya.xls" "olya" "D" "2" "101" "OlyaS"
                     s "marina.xls" "marina" "D" "2" "101" "MarinaS"
     ]
+let dataset2 = ds [ dh [ make "olya.xls" "olya" "F" "2" "101"
+                         make "marina.xls" "marina" "F" "2" "101"
+                       ] "DH"
+    ]
 let Graphs : Control array = [|
     dataset1
+    dataset2
 |]
 
 let he() = (form.Height - 200) / Graphs.Length
 Graphs |> Array.iteri(fun i g ->
     let cc = g :?> ChartControl
     cc.Height <- he()
-    cc.Resize.Add(fun _ -> 
+    cc.Resize.Add /> fun _ -> 
         cc.Height <- he()
-    )
 )
 
-aboutMenu.Click.Add (fun _ -> 
+aboutMenu.Click.Add /> fun _ -> 
     MessageBox.Show("Insight v.0.0.1") |> ignore
-)
 
-exitM.Click.Add (fun _ -> ignore <| form.Close())
-b1.Click.Add    (fun _ -> ignore <| form.Close())
-b2.Click.Add    (fun _ -> ())
+exitM.Click.Add /> fun _ -> ignore <| form.Close()
+b1.Click.Add    /> fun _ -> ignore <| form.Close()
+b2.Click.Add    /> fun _ -> ()
 
 form.Controls.AddRange <| Array.concat [Graphs; [|b1; b2|]]
 Application.Run(form)
