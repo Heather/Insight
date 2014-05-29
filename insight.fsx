@@ -129,7 +129,22 @@ let dh (data : seq<list<float>>) a6 =
                       |> Seq.map        /> fun (n, c)  -> (n.ToString(), c)
     Chart.Doughnut(result, a6)
     
-
+let sameDataX d = groupConsecutive d
+                 |> Seq.groupBy  /> fun s -> Seq.length s
+                 |> Seq.filter   /> fun (n, _) -> n > 1
+                 |> Seq.map      /> fun (n, g) -> (n, (g |> Seq.nth 0).[0], (Seq.length g))
+let dhX (data : seq<list<float>>) a6 = 
+    let result = data |> Seq.map        /> fun l -> sameDataX l
+                      |> Seq.concat
+                      |> Seq.groupBy    /> fun (n, v, _)  -> n
+                      |> Seq.map        /> fun (nn, s) -> (nn, (s |> Seq.map(fun (_, v, _) -> v))
+                                                             , (s |> Seq.map(fun (_, _, c) -> c)
+                                                                  |> Seq.sum ))
+                      |> Seq.map        /> fun (n, vv, c)  -> vv  |> Seq.map(fun v -> 
+                                                                                (n.ToString() + ": " + v.ToString()), c)
+                      |> Seq.concat
+    Chart.Doughnut(result, a6)
+    
 let xls = (new DirectoryInfo(".")).GetFiles()
           |> Seq.filter /> fun f -> f.Name.EndsWith(".xls")
           |> Seq.map    /> fun f -> f.Name
@@ -149,8 +164,8 @@ let dataset1 = ds <| Fdata @ Ddata
                     s "olya.xls" "D" "2" "101" "OlyaS"
                     s "marina.xls" "D" "2" "101" "MarinaS"
     ]*)
-let dataset2 = ds [ dh <| xlsData "F" "2" "101"
-                       <| "DH"
+let dataset2 = ds [ dhX <| xlsData "F" "2" "101"
+                        <| "DH"
 (*[ make "olya.xls" "F" "2" "101"
                          make "marina.xls" "F" "2" "101"
                        ] "DH"
