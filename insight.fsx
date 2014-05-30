@@ -35,18 +35,18 @@ open NPOI.HSSF.UserModel
 let inline (/>) f a = f a
 
 let form = new MetroForm()
-form.Width  <- 800
-form.Height <- 750
+form.Width  <- 650
+form.Height <- 800
 form.Text   <- "Insight"
 form.Font   <- new Font( "Lucida Console"
                        , 12.0f
                        , FontStyle.Regular,GraphicsUnit.Point )
 
 let b1 = new MetroButton();
-b1.Location <- Point(40, 680); b1.Size <- Size(150, 50); b1.Text <- "Exit"
+b1.Location <- Point(40, 730); b1.Size <- Size(150, 50); b1.Text <- "Exit"
 b1.Anchor <- (AnchorStyles.Bottom ||| AnchorStyles.Left)
 let b2 = new MetroButton();
-b2.Location <- Point(580, 680); b2.Size <- Size(150, 50); b2.Text <- "Go"
+b2.Location <- Point(450, 730); b2.Size <- Size(150, 50); b2.Text <- "Export"
 b2.Anchor <- (AnchorStyles.Bottom ||| AnchorStyles.Right)
 
 let menuStrip = new ContextMenuStrip();
@@ -89,24 +89,8 @@ let make fname varCol startRow endRow =
                                      counter 0
                             | _ -> try Int32.Parse endRow
                                    with _ -> 0
-                                   (*
-                let save() = using(new MemoryStream()) <| fun ms ->  
-                    templateWorkbook.Write(ms)         
-                    let msA = ms.ToArray()
-                    using(new FileStream((@"X.xls"), FileMode.OpenOrCreate , FileAccess.Write))
-                    <| fun newF ->
-                        try newF.Write(msA,0,msA.Length)
-                            MessageBox.Show( "X.xls created, check the result" ) |> ignore
-                        with _ -> MessageBox.Show( "Can't write to file" )       |> ignore
-                        *)
                 getData sr er
         else []
-
-(*
-let l a1 a3 a4 a5 a6 = Chart.Line        (make a1 a3 a4 a5, a6)
-let p a1 a3 a4 a5 a6 = Chart.Point       (make a1 a3 a4 a5, a6)
-let s a1 a3 a4 a5 a6 = Chart.SplineArea  (make a1 a3 a4 a5, a6)
-*)
 
 let groupConsecutive sq = 
     (Array.ofSeq sq, [])
@@ -144,36 +128,48 @@ let dhX (data : seq<list<float>>) a6 =
                                                                                 (n.ToString() + ": " + v.ToString()), c)
                       |> Seq.concat
     Chart.Doughnut(result, a6)
+
+let sameDataY d = (groupConsecutive (d |> Seq.concat)) |> Seq.map /> fun s -> ( Seq.length s, s |> Seq.nth 0 )
+let herLogicsThere d = let dataY    = sameDataY (d : seq<float list>)
+                       let dataYlen = Seq.length dataY
+                       dataY
+                      |> Seq.mapi   /> fun i (n, v) ->
+                                        if n > 1 && i + 3 < dataYlen then
+                                            let (nn, vn)   = dataY |> Seq.nth (i + 1)
+                                            let (nnn, vnn) = dataY |> Seq.nth (i + 2)
+                                            let (nnnn, vnnn) = dataY |> Seq.nth (i + 3)
+                                            (n, v, vn, vnn, vnnn)
+                                        else (n, v, 0.0, 0.0, 0.0)
+                      |> Seq.filter /> fun (n, _, _, _, _) -> n > 1
+                      |> Seq.mapi   /> fun i (n, v1, v2, v3, v4) -> Chart.SplineArea ([v1; v2; v3; v4], "dataH" + i.ToString())
+                      |> Seq.toList
     
 let xls = (new DirectoryInfo(".")).GetFiles()
           |> Seq.filter /> fun f -> f.Name.EndsWith(".xls")
           |> Seq.map    /> fun f -> f.Name
 let xlsData col start fin = xls |> Seq.map /> fun n -> make n col start fin
 
-let Fdata = xlsData "F" "2" "101"
-            |> Seq.mapi /> fun i d -> Chart.Line (d, "dataF" + i.ToString())
-            |> Seq.toList
-let Ddata = xlsData "D" "2" "101"
-            |> Seq.mapi /> fun i d -> Chart.SplineArea( d, "dataD" + i.ToString())
-            |> Seq.toList
+let xlsRF = xlsData "F" "2" "101"
+let xlsRD = xlsData "D" "2" "101"
+
+let hData = herLogicsThere xlsRD 
+let Fdata = xlsRF |> Seq.mapi /> fun i d -> Chart.Line (d, "dataF" + i.ToString())
+                  |> Seq.toList
+let Ddata = xlsRD |> Seq.mapi /> fun i d -> Chart.SplineArea( d, "dataD" + i.ToString())
+                  |> Seq.toList
 
 let ds xs = new ChartControl(Chart.Combine xs, Dock=DockStyle.Top)
-let dataset1 = ds <| Fdata @ Ddata
-(*[ l "olya.xls" "F" "2" "101" "Olya"
-                    l "marina.xls" "F" "2" "101" "Marina"
-                    s "olya.xls" "D" "2" "101" "OlyaS"
-                    s "marina.xls" "D" "2" "101" "MarinaS"
-    ]*)
+
 let dataset2 = ds [ dhX <| xlsData "F" "2" "101"
                         <| "DH"
-(*[ make "olya.xls" "F" "2" "101"
-                         make "marina.xls" "F" "2" "101"
-                       ] "DH"
-   *)
     ]
+let dataset1 = ds <| Fdata @ Ddata
+let dataset3 = ds <| hData
+
 let Graphs : Control array = [|
     dataset1
     dataset2
+    dataset3
 |]
 
 let he() = (form.Height - 200) / Graphs.Length
@@ -189,7 +185,15 @@ aboutMenu.Click.Add /> fun _ ->
 
 exitM.Click.Add /> fun _ -> ignore <| form.Close()
 b1.Click.Add    /> fun _ -> ignore <| form.Close()
-b2.Click.Add    /> fun _ -> ()
+b2.Click.Add    /> fun _ -> using(new MemoryStream()) <| fun ms ->  
+                            let templateWorkbook = new HSSFWorkbook()
+                            templateWorkbook.Write(ms)         
+                            let msA = ms.ToArray()
+                            using(new FileStream((@"X.xls"), FileMode.OpenOrCreate , FileAccess.Write))
+                            <| fun newF ->
+                                try newF.Write(msA,0,msA.Length)
+                                    MessageBox.Show( "X.xls created, check the result" ) |> ignore
+                                with _ -> MessageBox.Show( "Can't write to file" )       |> ignore
 
 form.Controls.AddRange <| Array.concat [Graphs; [|b1; b2|]]
 Application.Run(form)
